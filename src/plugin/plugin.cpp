@@ -6,6 +6,7 @@
 #include "common/logger.h"
 #include "common/protocol.h"
 
+#define WINDOW_OPEN_DELAY (0)
 
 #define XEMBED_EMBEDDED_NOTIFY	0
 #define XEMBED_FOCUS_OUT		5
@@ -381,9 +382,10 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		XResizeWindow(display, parent, width, height);
 		XSync(display, false);
 
+#if WINDOW_OPEN_DELAY
 		// FIXME without this delay, the VST window sometimes stays black.
 		usleep(100000);
-
+#endif
 		Window child = frame->value;
 		XReparentWindow(display, child, parent, 0, 0);
 
@@ -393,10 +395,10 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		frame->command = Command::ShowWindow;
 		port->sendRequest();
 		port->waitResponse();
-
+#if WINDOW_OPEN_DELAY
 		// FIXME without this delay, the VST window sometimes stays black.
 		usleep(100000);
-
+#endif
 		XMapWindow(display, child);
 		XSync(display, false);
 
