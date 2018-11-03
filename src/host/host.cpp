@@ -382,9 +382,12 @@ bool Host::handleDispatch(DataFrame* frame)
 			ERROR("Unable to register window class: %s", errorString().c_str());
 			return false;
 		}
+		// Obtain the size of the VST window in advance.
+		ERect* rect = nullptr;
+		effect_->dispatcher(effect_, effEditGetRect, 0, 0, &rect, 0.0f);
 
 		hwnd_ = CreateWindowEx(WS_EX_TOOLWINDOW, kWindowClass, "Plugin", WS_POPUP, 0, 0,
-				200, 200, 0, 0, GetModuleHandle(nullptr), 0);
+				rect->right - rect->left, rect->bottom - rect->top, 0, 0, GetModuleHandle(nullptr), 0);
 
 		if(!hwnd_) {
 			ERROR("Unable to create window: %s", errorString().c_str());
@@ -395,14 +398,11 @@ bool Host::handleDispatch(DataFrame* frame)
 		frame->value = effect_->dispatcher(effect_, frame->opcode, frame->index,
 				frame->value, hwnd_, frame->opt);
 
-		// Obtain the size of the VST window in advance.
-		ERect* rect = nullptr;
-		effect_->dispatcher(effect_, effEditGetRect, 0, 0, &rect, 0.0f);
 
-		RECT wndRect = { rect->left, rect->top, rect->right, rect->bottom };
+		//RECT wndRect = { rect->left, rect->top, rect->right, rect->bottom };
 
-		AdjustWindowRectEx(&wndRect, GetWindowLong(hwnd_, GWL_STYLE),
-				GetMenu(hwnd_) != nullptr, GetWindowLong(hwnd_, GWL_EXSTYLE));
+		//AdjustWindowRectEx(&wndRect, GetWindowLong(hwnd_, GWL_STYLE),
+		//		GetMenu(hwnd_) != nullptr, GetWindowLong(hwnd_, GWL_EXSTYLE));
 
 		SetWindowPos(hwnd_, 0, 0, 0, rect->right - rect->left, rect->bottom - rect->top,
 				SWP_NOACTIVATE | SWP_NOMOVE);
