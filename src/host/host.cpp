@@ -4,6 +4,7 @@
 #include "common/logger.h"
 #include "common/protocol.h"
 
+#define CLOSE_EDITOR_ON_CLOSE (1)
 
 namespace Airwave {
 
@@ -298,12 +299,13 @@ bool Host::handleDispatch(DataFrame* frame)
 		// Some stupid hosts doesn't send the effEditClose event before sending
 		// the effClose event. This leads to crashes of some stupid plugins. So
 		// we just emulate correct behavior here to avoid these crashes.
+#if CLOSE_EDITOR_ON_CLOSE
 		if(isEditorOpen_) {
 			effect_->dispatcher(effect_, effEditClose, 0, 0, nullptr, 0.0f);
 			destroyEditorWindow();
 			isEditorOpen_ = false;
 		}
-
+#endif
 		frame->value = effect_->dispatcher(effect_, frame->opcode, frame->index,
 				frame->value, nullptr, frame->opt);
 		break;
