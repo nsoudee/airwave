@@ -6,7 +6,7 @@
 #include "common/logger.h"
 #include "common/protocol.h"
 
-#define WINDOW_OPEN_DELAY (0)
+#define WINDOW_OPEN_DELAY (1)
 #define CLOSE_WAIT_RESPONSE (0)
 
 #define XEMBED_EMBEDDED_NOTIFY	0
