@@ -425,6 +425,7 @@ bool Host::handleDispatch(DataFrame* frame)
 		std::memcpy(&frame->data, rect, sizeof(ERect));
 		break; }
 
+        case effSetBypass:
 	case effCanDo:
 	case effGetVendorString:
 	case effGetProductString:

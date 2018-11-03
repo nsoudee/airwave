@@ -318,6 +318,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		setBlockSize(port, 256);
 		return result; }
 
+        case effSetBypass:
 	case effGetVstVersion:
 	case effGetPlugCategory:
 	case effSetSampleRate:
