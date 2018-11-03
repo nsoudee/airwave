@@ -7,6 +7,7 @@
 #include "common/protocol.h"
 
 #define WINDOW_OPEN_DELAY (0)
+#define CLOSE_WAIT_RESPONSE (0)
 
 #define XEMBED_EMBEDDED_NOTIFY	0
 #define XEMBED_FOCUS_OUT		5
@@ -348,7 +349,11 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effClose:
 		port->sendRequest();
+#if CLOSE_WAIT_RESPONSE
 		port->waitResponse();
+#else
+                usleep(100000);
+#endif
 
 		TRACE("Closing plugin");
 		delete this;
