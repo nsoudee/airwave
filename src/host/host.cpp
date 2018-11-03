@@ -307,8 +307,7 @@ bool Host::handleDispatch(DataFrame* frame)
 		}
 #endif
 		frame->value = effect_->dispatcher(effect_, frame->opcode, frame->index,
-				frame->value, frame->data, frame->opt);
-                exit(0);
+				frame->value, nullptr, frame->opt);
 		break;
 
 	case effGetVstVersion:
