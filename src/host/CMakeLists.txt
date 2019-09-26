@@ -50,6 +50,7 @@ if(NOT DISABLE_64BIT AND PLATFORM_64BIT)
 	# Link with libraries
 	target_link_libraries(${TARGET_NAME}-64
 		${CMAKE_THREAD_LIBS_INIT}
+		${X11_X11_LIB}
 	)
 
 	install(PROGRAMS
@@ -71,6 +72,7 @@ set_target_properties(${TARGET_NAME}-32 PROPERTIES
 # Link with libraries
 target_link_libraries(${TARGET_NAME}-32
 	${CMAKE_THREAD_LIBS_INIT}
+	${X11_X11_LIB}
         user32
         kernel32
         /usr/lib/i386-linux-gnu/wine/libwinecrt0.a
