@@ -88,7 +88,7 @@ Plugin::Plugin(const std::string& vstPath, const std::string& hostPath,
 	TRACE("Waiting response from host endpoint...");
 
 	// Wait for the host endpoint initialization.
-	if(!controlPort_.waitResponse()) {
+	if(!controlPort_.waitResponse("Plugin::Plugin")) {
 		ERROR("Host endpoint is not responding");
 		kill(childPid_, SIGKILL);
 		controlPort_.disconnect();
@@ -167,7 +167,7 @@ void Plugin::callbackThread()
 	condition_.post();
 
 	while(processCallbacks_.test_and_set()) {
-		if(callbackPort_.waitRequest(100)) {
+		if(callbackPort_.waitRequest("Plugin::callbackThread", 100)) {
 			DataFrame* frame = callbackPort_.frame<DataFrame>();
 			frame->value = handleAudioMaster();
 			callbackPort_.sendResponse();
@@ -197,7 +197,7 @@ intptr_t Plugin::setBlockSize(DataPort* port, intptr_t frames)
 		frame->opcode = effSetBlockSize;
 		frame->index = audioPort_.id();
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::setBlockSize");
 		return frame->value;
 	}
 
@@ -314,7 +314,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effOpen: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effOpen");
 		int result = frame->value;
 
 		setBlockSize(port, 256);
@@ -344,16 +344,12 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 	case __effKeysRequiredDeprecated:
 	case __effIdentifyDeprecated:
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/__effIdentifyDeprecated");
 		return frame->value;
 
 	case effClose:
 		port->sendRequest();
-#if CLOSE_WAIT_RESPONSE
-		port->waitResponse();
-#else
-                usleep(100000);
-#endif
+		port->waitResponse("Plugin::dispatch/effClose");
 
 		TRACE("Closing plugin");
 		delete this;
@@ -368,7 +364,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		Window parent = reinterpret_cast<Window>(ptr);
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effEditOpen");
 
 		union Cast {
 			u8* data;
@@ -399,8 +395,8 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 		frame->command = Command::ShowWindow;
 		port->sendRequest();
-		port->waitResponse();
-#if WINDOW_OPEN_DELAY
+		port->waitResponse("Plugin::dispatch/effEditOpen Command::ShowWindow");
+
 		// FIXME without this delay, the VST window sometimes stays black.
 		usleep(100000);
 #endif
@@ -413,7 +409,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effEditGetRect: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effEditGetRect");
 
 		union Cast {
 			u8* data;
@@ -436,12 +432,12 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		vst_strncpy(dest, source, maxLength);
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effCanDo");
 		return frame->value; }
 
 	case effGetProgramName: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetProgramName");
 
 		const char* source = reinterpret_cast<const char*>(frame->data);
 		char* dest         = static_cast<char*>(ptr);
@@ -456,14 +452,14 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		vst_strncpy(dest, source, kVstMaxProgNameLen);
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effSetProgramName");
 		return frame->value; }
 
 	case effGetVendorString:
 	case effGetProductString:
 	case effShellGetNextPlugin: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effShellGetNextPlugin");
 
 		const char* source = reinterpret_cast<const char*>(frame->data);
 		char* dest         = static_cast<char*>(ptr);
@@ -475,7 +471,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 	case effGetParamLabel:
 	case effGetParamDisplay: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetParamDisplay");
 
 		const char* source = reinterpret_cast<const char*>(frame->data);
 		char* dest         = static_cast<char*>(ptr);
@@ -497,7 +493,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effGetEffectName: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetEffectName");
 
 		const char* source = reinterpret_cast<const char*>(frame->data);
 		char* dest         = static_cast<char*>(ptr);
@@ -507,7 +503,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effGetParameterProperties:
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetParameterProperties");
 
 		std::memcpy(ptr, frame->data, sizeof(VstParameterProperties));
 		return frame->value;
@@ -515,14 +511,14 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 	case effGetOutputProperties:
 	case effGetInputProperties:
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetParameterProperties");
 
 		std::memcpy(ptr, frame->data, sizeof(VstPinProperties));
 		return frame->value;
 
 	case effGetProgramNameIndexed: {
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetProgramNameIndexed");
 
 		const char* source = reinterpret_cast<const char*>(frame->data);
 		char* dest         = static_cast<char*>(ptr);
@@ -532,7 +528,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 	case effGetMidiKeyName:
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetMidiKeyName");
 
 		std::memcpy(ptr, frame->data, sizeof(MidiKeyName));
 		return frame->value;
@@ -546,7 +542,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 			event[i] = *events->events[i];
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effProcessEvents");
 		return frame->value; }
 
 	case effGetChunk: {
@@ -557,7 +553,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		frame->value = blockSize;
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effGetChunk");
 
 		DEBUG("effGetChunk: chunk size %d bytes", frame->value);
 
@@ -583,7 +579,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 			DEBUG("effGetChunk: requesting next %d bytes", frame->index);
 
 			port->sendRequest();
-			port->waitResponse();
+			port->waitResponse("Plugin::dispatch/effGetChunk reading");
 
 			size_t count = frame->index;
 			if(count == 0) {
@@ -618,7 +614,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 			DEBUG("effSetChunk: sending next %d bytes", count);
 
 			port->sendRequest();
-			port->waitResponse();
+			port->waitResponse("Plugin::dispatch/effSetChunk");
 
 			data_ += count;
 			dataLength_ -= count;
@@ -629,7 +625,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		frame->index = isPreset;
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effSetChunk write");
 
 		DEBUG("effSetChunk: sent %d bytes", chunkSize);
 
@@ -639,7 +635,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 	case effBeginLoadProgram:
 		std::memcpy(frame->data, ptr, sizeof(VstPatchChunkInfo));
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effBeginLoadProgram");
 		return frame->value;
 
 	case effSetSpeakerArrangement: {
@@ -653,7 +649,7 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 		std::memcpy(data, pluginOutput, sizeof(VstSpeakerArrangement));
 
 		port->sendRequest();
-		port->waitResponse();
+		port->waitResponse("Plugin::dispatch/effSetSpeakerArrangement");
 		return frame->value; }
 	}
 
@@ -690,7 +686,7 @@ float Plugin::getParameter(i32 index)
 	frame->index = index;
 
 	audioPort_.sendRequest();
-	audioPort_.waitResponse();
+	audioPort_.waitResponse("Plugin::getParameter");
 	return frame->opt;
 }
 
@@ -703,7 +699,7 @@ void Plugin::setParameter(i32 index, float value)
 	frame->opt = value;
 
 	audioPort_.sendRequest();
-	audioPort_.waitResponse();
+	audioPort_.waitResponse("Plugin::setParameter");
 }
 
 
@@ -720,7 +716,7 @@ void Plugin::processReplacing(float** inputs, float** outputs, i32 count)
 	}
 
 	audioPort_.sendRequest();
-	audioPort_.waitResponse();
+	audioPort_.waitResponse("Plugin::processReplacing");
 
 	data = reinterpret_cast<float*>(frame->data);
 
@@ -742,7 +738,7 @@ void Plugin::processDoubleReplacing(double** inputs, double** outputs, i32 count
 		data = std::copy(inputs[i], inputs[i] + count, data);
 
 	audioPort_.sendRequest();
-	audioPort_.waitResponse();
+	audioPort_.waitResponse("Plugin::processDoubleReplacing");
 
 	data = reinterpret_cast<double*>(frame->data);
 

@@ -85,7 +85,7 @@ bool Host::initialize(const char* fileName, int portId)
 
 	TRACE("Waiting for plugin endpoint request...");
 
-	if(!controlPort_.waitRequest()) {
+	if(!controlPort_.waitRequest("endpoint init")) {
 		ERROR("Unable to get initial request from plugin endpoint");
 		controlPort_.disconnect();
 		DeleteCriticalSection(&cs_);
@@ -161,7 +161,7 @@ bool Host::processRequest()
 		return false;
 	}
 
-	if(!controlPort_.waitRequest(10))
+	if(!controlPort_.waitRequest("host::processRequest", 10))
 		return true;
 
 	bool result = true;
@@ -244,7 +244,7 @@ void Host::audioThread()
 	condition_.post();
 
 	while(runAudio_.test_and_set()) {
-		if(audioPort_.waitRequest(100)) {
+		if(audioPort_.waitRequest("Host::audioThread", 100)) {
 			DataFrame* frame = audioPort_.frame<DataFrame>();
 
 			if(frame->command == Command::ProcessSingle) {
@@ -586,7 +586,7 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 	case audioMasterCurrentId:
 	case audioMasterGetSampleRate:
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterGetSampleRate");
 		return frame->value;
 
 	case audioMasterIOChanged: {
@@ -604,7 +604,7 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 		info->version      = effect_->version;
 
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterIOChanged");
 		return frame->value; }
 
 	// FIXME Passing the audioMasterUpdateDisplay request to the plugin endpoint leads to
@@ -626,7 +626,7 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 
 	case audioMasterGetVendorString: {
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterGetVendorString");
 
 		if(!frame->value)
 			return 0;
@@ -640,7 +640,7 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 
 	case audioMasterGetProductString: {
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterGetProductString");
 
 		if(!frame->value)
 			return 0;
@@ -661,12 +661,12 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 		dest[maxLength-1] = '\0';
 
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterCanDo");
 		return frame->value; }
 
 	case audioMasterGetTime:
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterGetTime");
 
 		if(!frame->value)
 			return 0;
@@ -683,7 +683,7 @@ intptr_t Host::audioMaster(i32 opcode, i32 index, intptr_t value, void* ptr, flo
 			event[i] = *events->events[i];
 
 		callbackPort_.sendRequest();
-		callbackPort_.waitResponse();
+		callbackPort_.waitResponse("Host::audioMaster/audioMasterProcessEvents");
 		return frame->value; }
 	}
 
