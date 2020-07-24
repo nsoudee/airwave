@@ -399,7 +399,6 @@ intptr_t Plugin::dispatch(DataPort* port, i32 opcode, i32 index, intptr_t value,
 
 		// FIXME without this delay, the VST window sometimes stays black.
 		usleep(100000);
-#endif
 		XMapWindow(display, child);
 		XSync(display, false);
 
